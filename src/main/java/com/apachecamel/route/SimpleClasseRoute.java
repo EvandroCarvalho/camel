@@ -11,9 +11,8 @@ public class SimpleClasseRoute extends RouteBuilder {
     @Override
     public void configure() throws Exception {
 
-        from("timer:hello?period=10s")
-                .log("Timer invoked and the body is ${body}")
-                .pollEnrich("file:data/input?delete=true&readLock=none")
-                .to("file:data/output");
+        from("{{fromRoute}}")
+                .log("body is ${body}")
+                .to("{{toRoute}}");
     }
 }

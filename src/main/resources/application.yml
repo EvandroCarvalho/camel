@@ -1,0 +1,24 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/apacheCamel
+    password:
+    username: root
+    driver-class-name: com.mysql.jdbc.Driver
+  jpa:
+    database: mysql
+    hibernate:
+      ddl-auto: update
+      generate-ddl: true
+  application:
+    name: integration_kafka_cassandra
+
+
+
+fromRoute: kafka:inputItemTopic?brokers=localhost:9092&groupId=itemDev&autoOffsetReset=earliest&consumersCount=1
+toRoute: log:?level=INFO&showBody=true
+camel:
+  component:
+    servlet:
+      mapping:
+        enabled: true
+        context-path: /*
