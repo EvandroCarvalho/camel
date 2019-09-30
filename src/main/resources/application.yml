@@ -14,7 +14,7 @@ spring:
 
 
 
-fromRoute: kafka:inputItemTopic?brokers=localhost:9092&groupId=itemDev&autoOffsetReset=earliest&consumersCount=1
+#fromRoute: kafka:inputItemTopic?brokers=localhost:9092&groupId=itemDev&autoOffsetReset=earliest&consumersCount=1
 toRoute: log:?level=INFO&showBody=true
 camel:
   component:
