@@ -1,19 +1,21 @@
 package com.apachecamel.rest;
 
-import com.apachecamel.model.User;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.extern.slf4j.Slf4j;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.camel.Exchange;
 import org.apache.camel.LoggingLevel;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
-
-import java.io.IOException;
-import java.util.*;
+import com.apachecamel.model.Response;
+import com.apachecamel.model.User;
+import com.datastax.driver.core.LocalDate;
+import com.datastax.driver.core.Row;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author Evandro Carvalho
@@ -21,56 +23,68 @@ import java.util.*;
 @Component
 @Slf4j
 public class RestCamelRoute extends RouteBuilder {
-    private static String CQL = "select * from user where id = ?";
-    //private static String CQL = "select * from user where name = ? ALLOW FILTERING";
 
-    @Override
-    public void configure() throws Exception {
+  @Autowired
+  private ObjectMapper mapper;
 
-        rest("/hello")
-                .get()
-                .to("direct:hello");
+  private static String CQL = "select json * from user where burn_date > ? ALLOW FILTERING";
+  // private static String CQL = "select * from user where name = ? ALLOW FILTERING";
 
-        from("direct:hello")
-                .doTry()
-                    .log("bigodin finin")
-                    .process(new Processor() {
-                        @Override
-                        public void process(Exchange exchange) throws Exception {
-                            log.info("in processor");
-                            exchange.getIn().setBody(1);
-                        }
-                    })
-                    .log(LoggingLevel.INFO, "chamando o banco")
-                    .log(LoggingLevel.INFO, "${body}")
-                    .to("cql://localhost/forum?cql=" + CQL)
-                    .log("consulta realizada")
-                    .log("${body}")
-                .process(new Processor() {
-                    @Override
-                    public void process(Exchange exchange) throws Exception {
+  @Override
+  public void configure() throws Exception {
 
-                        List<Row> result = (List<Row>) exchange.getIn().getBody();
+    rest("/hello").get().to("direct:hello");
 
-                        log.info("List Of Row" + result.toString());
+    from("direct:hello").doTry().log("bigodin finin").process(new Processor() {
+      @Override
+      public void process(Exchange exchange) throws Exception {
+        log.info("in processor");
+        LocalDate date = LocalDate.fromYearMonthDay(1985, 12, 19);
+        exchange.getIn().setBody(date);
+      }
+    }).log(LoggingLevel.INFO, "chamando o banco").log(LoggingLevel.INFO, "${body}")
+        .to("cql://localhost/forum?cql=" + CQL).log("consulta realizada").log("${body}")
+        .process(new Processor() {
+          @Override
+          public void process(Exchange exchange) throws Exception {
+            // Row
 
-                        int id = Integer.parseInt(result.get(0).getObject("id").toString());
-                        String name = result.get(0).getObject("name").toString();
-                        int age = Integer.parseInt(result.get(0).getObject("age").toString());
+            // List<Row> result = (List<Row>) exchange.getIn().getBody();
+            //
+            // log.info("List Of Row" + result.toString());
+            //
+            // int id = Integer.parseInt(result.get(0).getObject("id").toString());
+            // String name = result.get(0).getObject("name").toString();
+            // int age = Integer.parseInt(result.get(0).getObject("age").toString());
+            //
+            // User user = User.builder().id(id).age(age).name(name).build();
+            //
+            // Object obj = exchange.getIn().getBody();
+            // log.info("Response consult: " + obj.toString());
+            // exchange.getOut().setBody(new
+            // ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(user));
+            // exchange.getOut().setHeader("Content-type",MediaType.APPLICATION_JSON_VALUE);
 
-                        User user = User.builder().id(id).age(age).name(name).build();
+            // Json
+            @SuppressWarnings("unchecked")
+            List<Row> rows = (List<Row>) exchange.getIn().getBody();
+            String jsonResponse = rows.get(0).getObject(0).toString();
+            log.info("JSON: " + jsonResponse);
 
-                        Object obj = exchange.getIn().getBody();
-                        log.info("Response consult: " + obj.toString());
-                        exchange.getOut().setBody(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(user));
-                        exchange.getOut().setHeader("Content-type",MediaType.APPLICATION_JSON_VALUE);
-                    }
-                })
-                .endDoTry()
-                .doCatch(IOException.class)
-                .log("Erro na consulta")
-                .end();
+            List<User> listResponse = new ArrayList<>();
+            Response response = new Response();
+            
+            for (Row row : rows) {
+              User user = mapper.readValue(row.getObject(0).toString(), User.class);
+              listResponse.add(user);
+            }
 
+            response.setData(listResponse);
 
-    }
+            exchange.getOut().setBody(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(response));
+            exchange.getOut().setHeader("Content-type", MediaType.APPLICATION_JSON_VALUE);
+          }
+        }).endDoTry().doCatch(IOException.class).log("Erro na consulta").end();
+
+  }
 }
