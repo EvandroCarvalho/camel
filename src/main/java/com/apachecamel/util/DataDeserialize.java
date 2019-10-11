@@ -16,14 +16,26 @@ public class DataDeserialize extends JsonDeserializer<LocalDate> {
   @Override
   public LocalDate deserialize(JsonParser p, DeserializationContext ctxt)
       throws IOException, JsonProcessingException {
-
+//    log.info("DATE: " + p.getText());
+//    String[] date = p.getText().split("-");
+    log.info("deserialize: " + p.getText());
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     LocalDate localDate = null;
     localDate = LocalDate.parse(p.getText(), formatter);
     
-    log.info(localDate.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT)));
-    
+//    log.info("DATE ARRAY: " + date[0]);
+//    
+//    LocalDate localdate = LocalDate.fromYearMonthDay(Integer.parseInt(date[0]), Integer.parseInt(date[1]), Integer.parseInt(date[2]));
+//    log.info("LOCALDATE: " + localdate);
     return localDate;
   }
+  
+//  
+//  public static void main(String[] args) {
+//    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+//    LocalDate localDate = LocalDate.parse("2019-12-12", formatter);
+//    
+//    System.out.println(localDate);
+//  }
 
 }
